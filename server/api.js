@@ -1,7 +1,8 @@
 // API handlers, shared by the Vite dev server and the Vercel functions.
-import { db, newId } from "./db.js";
+import { db, getStore, newId } from "./db.js";
 import { addDays, bookableDates, isDate, lisbonDate, slotTimes } from "./lisbon.js";
 import { OrderError, priceItems } from "./pricing.js";
+import { SlotFullError } from "./store.js";
 
 // Orders one pickup slot can take before it shows as full.
 export const SLOT_CAPACITY = 6;
@@ -71,9 +72,8 @@ function checkLeadTime(lines, pickupAt) {
   }
 }
 
-const bookedAt = (at) => db.orders.filter((o) => o.pickupAt === at).length;
-
-// The pickup time must be one of the slots still to come on a bookable day, with room left.
+// The pickup time must be one of the slots still to come on a bookable day. Room in the slot is checked
+// when the order is saved (see store.insertOrder).
 function checkPickup(at) {
   const instant = typeof at === "string" ? new Date(at) : null;
   const iso = instant && !isNaN(instant) ? instant.toISOString() : "";
@@ -81,11 +81,19 @@ function checkPickup(at) {
   if (!iso || !bookableDates().includes(date) || !slotTimes(date).includes(iso) || instant.getTime() <= Date.now()) {
     throw new OrderError("Choose one of the pickup times shown.");
   }
-  if (bookedAt(iso) >= SLOT_CAPACITY) throw new OrderError("That pickup time has just filled up. Please choose another.");
   return iso;
 }
 
 export async function handle(req, res) {
+  try {
+    return await route(req, res);
+  } catch (e) {
+    console.error(e);
+    return json(res, 500, { error: "Something went wrong on our side. Please try again in a moment." });
+  }
+}
+
+async function route(req, res) {
   const url = new URL(req.url, "http://localhost");
   const path = url.pathname.replace(/^\/api/, "");
 
@@ -98,26 +106,27 @@ export async function handle(req, res) {
     const date = url.searchParams.get("date");
     if (!isDate(date) || !bookableDates().includes(date)) return json(res, 400, { error: "Choose today or one of the next two days." });
     const now = Date.now();
-    const slots = slotTimes(date)
-      .filter((at) => Date.parse(at) > now)
-      .map((at) => ({ at, full: bookedAt(at) >= SLOT_CAPACITY }));
+    const times = slotTimes(date).filter((at) => Date.parse(at) > now);
+    const booked = await (await getStore()).countAt(times);
+    const slots = times.map((at) => ({ at, full: (booked[at] || 0) >= SLOT_CAPACITY }));
     return json(res, 200, slots);
   }
 
   if (path === "/orders" && req.method === "POST") {
     try {
       const order = { id: newId(), ...buildOrder(await readBody(req)) };
-      db.orders.push(order);
+      await (await getStore()).insertOrder(order, SLOT_CAPACITY);
       return json(res, 201, order);
     } catch (e) {
       if (e instanceof OrderError) return json(res, 400, { error: e.message });
+      if (e instanceof SlotFullError) return json(res, 400, { error: "That pickup time has just filled up. Please choose another." });
       throw e;
     }
   }
 
   const match = path.match(/^\/orders\/([A-Za-z0-9_-]{22})$/);
   if (match && req.method === "GET") {
-    const order = db.orders.find((o) => o.id === match[1]);
+    const order = await (await getStore()).findOrder(match[1]);
     if (!order) return json(res, 404, { error: "Not found" });
     return json(res, 200, order);
   }

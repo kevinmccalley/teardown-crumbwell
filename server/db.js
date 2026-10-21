@@ -1,11 +1,9 @@
 import { randomBytes } from "node:crypto";
-import { addDays, lisbonDate, lisbonTime } from "./lisbon.js";
-import { priceItems } from "./pricing.js";
+import { openPglite, openPostgres } from "./sql.js";
+import { createStore } from "./store.js";
 
-// Prices are in euro cents. leadDays: how many days ahead a product must be ordered. Images are names of the WebP sets in public/img (see src/images.js).
-// In-memory "database" standing in for the Supabase project a Lovable app would use.
-const pickup = (offset, hour) => lisbonTime(addDays(lisbonDate(), offset), hour).toISOString();
-
+// The menu, and the only source of prices. Prices are in euro cents. leadDays: how many days ahead a product
+// must be ordered. Images are names of the WebP sets in public/img (see src/images.js).
 export const db = {
   products: [
     { id: 1, name: "Country sourdough", note: "48-hour ferment, 900 g", price: 650, image: "sourdough" },
@@ -15,15 +13,20 @@ export const db = {
     { id: 5, name: "Rosemary focaccia", note: "Olive oil, sea salt, half tray", price: 780, image: "focaccia" },
     { id: 6, name: "Celebration cake", note: "Three layers, serves 12. Order a day ahead", price: 4200, image: "cake", leadDays: 1 },
   ],
-  orders: [],
 };
 
-const seed = (name, phone, email, items, pickupAt) => ({ id: newId(), name, phone, email, pickupAt, ...priceItems(items, db.products) });
-db.orders.push(
-  seed("Inês Carvalho", "+351 900 000 141", "ines.c@example.com", [{ id: 6, qty: 1 }], pickup(1, 10)),
-  seed("Tomás Ribeiro", "+351 900 000 142", "tomas.r@example.com", [{ id: 1, qty: 2 }, { id: 2, qty: 4 }], pickup(0, 9)),
-  seed("Sofia Mendes", "+351 900 000 143", "sofia.m@example.com", [{ id: 3, qty: 2 }], pickup(0, 11)),
-);
+// Orders live in Postgres. Set DATABASE_URL for a hosted database (required on Vercel). Without it, local
+// development uses PGlite in .data/pglite, or in memory with PGLITE_DIR=memory:// (the tests do this).
+let store;
+export function getStore() {
+  return (store ??= openDatabase().then(createStore));
+}
+
+async function openDatabase() {
+  if (process.env.DATABASE_URL) return openPostgres(process.env.DATABASE_URL);
+  if (process.env.VERCEL) throw new Error("DATABASE_URL is not set. Orders need a Postgres database in production.");
+  return openPglite(process.env.PGLITE_DIR || ".data/pglite");
+}
 
 // 128 random bits as 22 URL-safe characters, so order links can't be guessed or counted.
 export function newId() {

@@ -90,6 +90,17 @@ describe("slots API", () => {
     expect((await call("POST", "/api/orders", validOrder({ pickupAt: "2026-10-23T17:00:00.000Z" }))).status).toBe(400);
   });
 
+  it("marks a slot full after six orders and refuses a seventh", async () => {
+    const at = "2026-10-24T13:00:00.000Z"; // 14:00 Lisbon on Saturday
+    for (let i = 0; i < 6; i++) expect((await call("POST", "/api/orders", validOrder({ pickupAt: at }))).status).toBe(201);
+    const { status, body } = await call("POST", "/api/orders", validOrder({ pickupAt: at }));
+    expect(status).toBe(400);
+    expect(body.error).toBe("That pickup time has just filled up. Please choose another.");
+    const slots = (await call("GET", "/api/slots?date=2026-10-24")).body;
+    expect(slots.find((s) => s.at === at).full).toBe(true);
+    expect(slots.find((s) => s.at === "2026-10-24T14:00:00.000Z").full).toBe(false);
+  });
+
   it("refuses an order for a slot that has already passed", async () => {
     expect((await call("POST", "/api/orders", validOrder({ pickupAt: "2026-10-22T07:00:00.000Z" }))).status).toBe(400);
   });
