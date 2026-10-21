@@ -75,6 +75,7 @@ export default function App() {
     setAnnouncement(`Added ${p.name}. ${count + 1} ${count + 1 === 1 ? "item" : "items"} in your cart.`);
   };
 
+  const showCartBar = count > 0 && path === "/"; // never on checkout, where it would cover Place order
   const orderMatch = path.match(/^\/order\/([A-Za-z0-9_-]{22})$/);
   const page =
     path === "/" ? "menu" : path === "/checkout" ? "checkout" : orderMatch ? "order" : "missing";
@@ -102,7 +103,7 @@ export default function App() {
         </div>
       </header>
 
-      <main>
+      <main className={showCartBar ? "has-cartbar" : undefined}>
         {page === "menu" && <Menu products={products} add={add} />}
         {page === "checkout" && <Checkout products={products} items={inCart} cart={cart} total={total} onDone={() => setCart({})} />}
         {page === "order" && <OrderPage key={orderMatch![1]} id={orderMatch![1]} />}
@@ -115,7 +116,7 @@ export default function App() {
           </div>
         )}
 
-        {count > 0 && (
+        {showCartBar && (
           <div className="cartbar">
             <p>
               {count} {count === 1 ? "item" : "items"} · {euro(total)}
@@ -440,12 +441,12 @@ function Checkout({ products, items, cart, total, onDone }: { products: Product[
               {submitting ? "Placing order…" : "Place order"}
               <span className="pay-price"> · {euro(total)}</span>
             </button>
+            {serverError && (
+              <p className="server-error" role="alert">
+                We couldn't place your order. {serverError}
+              </p>
+            )}
           </div>
-          {serverError && (
-            <p className="server-error" role="alert">
-              We couldn't place your order. {serverError}
-            </p>
-          )}
           <p className="note">You pay at the counter when you collect. Prices are checked by the bakery.</p>
         </section>
       </form>
