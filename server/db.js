@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { priceItems } from "./pricing.js";
 
 // Prices are in euro cents.
@@ -18,12 +19,14 @@ export const db = {
   orders: [],
 };
 
-const seed = (id, name, phone, email, items, pickupAt) => ({ id, name, phone, email, pickupAt, ...priceItems(items, db.products) });
+const seed = (name, phone, email, items, pickupAt) => ({ id: newId(), name, phone, email, pickupAt, ...priceItems(items, db.products) });
 db.orders.push(
-  seed(1041, "Inês Carvalho", "+351 900 000 141", "ines.c@example.com", [{ id: 6, qty: 1 }], pickup(1, 10)),
-  seed(1042, "Tomás Ribeiro", "+351 900 000 142", "tomas.r@example.com", [{ id: 1, qty: 2 }, { id: 2, qty: 4 }], pickup(0, 9)),
-  seed(1043, "Sofia Mendes", "+351 900 000 143", "sofia.m@example.com", [{ id: 3, qty: 2 }], pickup(0, 11)),
+  seed("Inês Carvalho", "+351 900 000 141", "ines.c@example.com", [{ id: 6, qty: 1 }], pickup(1, 10)),
+  seed("Tomás Ribeiro", "+351 900 000 142", "tomas.r@example.com", [{ id: 1, qty: 2 }, { id: 2, qty: 4 }], pickup(0, 9)),
+  seed("Sofia Mendes", "+351 900 000 143", "sofia.m@example.com", [{ id: 3, qty: 2 }], pickup(0, 11)),
 );
 
-let nextId = 1044;
-export const newId = () => nextId++;
+// 128 random bits as 22 URL-safe characters, so order links can't be guessed or counted.
+export function newId() {
+  return randomBytes(16).toString("base64url");
+}

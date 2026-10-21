@@ -25,7 +25,7 @@ export default function App() {
   const count = Object.values(cart).reduce((a: any, b: any) => a + b, 0) as number;
   const total = products.reduce((sum, p) => sum + p.price * (cart[p.id] || 0), 0);
 
-  const orderMatch = path.match(/^\/order\/(\d+)/);
+  const orderMatch = path.match(/^\/order\/([A-Za-z0-9_-]{22})$/);
 
   return (
     <div>
@@ -187,7 +187,7 @@ function Order({ id, products }: any) {
   return (
     <div className="page">
       <div className="h2">Thanks, {order.name}!</div>
-      <div className="muted">Order #{order.id} · we'll text {order.phone} when it's ready.</div>
+      <div className="muted">We'll text {order.phone} when it's ready.</div>
       <div className="h3">Pickup</div>
       <div>{new Date(order.pickupAt).toLocaleString([], { weekday: "long", hour: "2-digit", minute: "2-digit" })}</div>
       <div className="h3">Items</div>

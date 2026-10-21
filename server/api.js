@@ -79,9 +79,9 @@ export async function handle(req, res) {
     }
   }
 
-  const match = path.match(/^\/orders\/(\d+)$/);
+  const match = path.match(/^\/orders\/([A-Za-z0-9_-]{22})$/);
   if (match && req.method === "GET") {
-    const order = db.orders.find((o) => o.id === Number(match[1]));
+    const order = db.orders.find((o) => o.id === match[1]);
     if (!order) return json(res, 404, { error: "Not found" });
     return json(res, 200, order);
   }
