@@ -17,7 +17,7 @@
   --ok: #2f6b3a;
   --focus: #1f5fbf;
   --serif: "Source Serif 4", Georgia, serif;
-  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 * { box-sizing: border-box; }
