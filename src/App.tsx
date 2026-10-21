@@ -1,6 +1,8 @@
 import { FormEvent, MouseEvent, ReactNode, useEffect, useRef, useState } from "react";
 // @ts-ignore
 import { bookableDates, formatPickup, formatShortDate, formatSlotTime, formatWeekday } from "../server/lisbon.js";
+// @ts-ignore
+import { IMAGE_WIDTHS, srcSet } from "./images.js";
 
 type Product = { id: number; name: string; note: string; price: number; image: string };
 type Cart = Record<number, number>;
@@ -139,7 +141,15 @@ function Menu({ products, add }: { products: Product[] | null; add: (p: Product)
     <>
       <div className="wrap">
         <div className="hero">
-          <img src="/img/hero.jpg" alt="" />
+          <img
+            src="/img/hero-1200.webp"
+            srcSet={srcSet("hero", IMAGE_WIDTHS.hero)}
+            sizes="(max-width: 1264px) calc(100vw - 32px), 1200px"
+            width={1200}
+            height={801}
+            fetchPriority="high"
+            alt=""
+          />
           <div className="hero-text">
             <PageHeading>Baked this morning.</PageHeading>
             <p className="sub">Order ahead and pick up warm from our Lisbon counter.</p>
@@ -150,7 +160,16 @@ function Menu({ products, add }: { products: Product[] | null; add: (p: Product)
         <ul className="grid">
           {(products || []).map((p) => (
             <li className="card" key={p.id}>
-              <img src={p.image} alt="" />
+              <img
+                src={`/img/${p.image}-400.webp`}
+                srcSet={srcSet(p.image, IMAGE_WIDTHS.product)}
+                sizes="(max-width: 599px) calc(100vw - 32px), (max-width: 899px) 50vw, 300px"
+                width={400}
+                height={267}
+                loading="lazy"
+                decoding="async"
+                alt=""
+              />
               <div className="card-body">
                 <h3 className="card-title">{p.name}</h3>
                 <p className="muted">{p.note}</p>

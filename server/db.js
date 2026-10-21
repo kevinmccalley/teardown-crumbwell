@@ -2,18 +2,18 @@ import { randomBytes } from "node:crypto";
 import { addDays, lisbonDate, lisbonTime } from "./lisbon.js";
 import { priceItems } from "./pricing.js";
 
-// Prices are in euro cents.
+// Prices are in euro cents. Images are names of the WebP sets in public/img (see src/images.js).
 // In-memory "database" standing in for the Supabase project a Lovable app would use.
 const pickup = (offset, hour) => lisbonTime(addDays(lisbonDate(), offset), hour).toISOString();
 
 export const db = {
   products: [
-    { id: 1, name: "Country sourdough", note: "48-hour ferment, 900 g", price: 650, image: "/img/sourdough.jpg" },
-    { id: 2, name: "Butter croissant", note: "Laminated with Normandy butter", price: 240, image: "/img/croissant.jpg" },
-    { id: 3, name: "Pastéis de nata, box of 6", note: "Baked every morning at 7", price: 900, image: "/img/nata.jpg" },
-    { id: 4, name: "Cardamom bun", note: "Swedish style, pearl sugar", price: 320, image: "/img/bun.jpg" },
-    { id: 5, name: "Rosemary focaccia", note: "Olive oil, sea salt, half tray", price: 780, image: "/img/focaccia.jpg" },
-    { id: 6, name: "Celebration cake", note: "Three layers, serves 12. Order a day ahead", price: 4200, image: "/img/cake.jpg" },
+    { id: 1, name: "Country sourdough", note: "48-hour ferment, 900 g", price: 650, image: "sourdough" },
+    { id: 2, name: "Butter croissant", note: "Laminated with Normandy butter", price: 240, image: "croissant" },
+    { id: 3, name: "Pastéis de nata, box of 6", note: "Baked every morning at 7", price: 900, image: "nata" },
+    { id: 4, name: "Cardamom bun", note: "Swedish style, pearl sugar", price: 320, image: "bun" },
+    { id: 5, name: "Rosemary focaccia", note: "Olive oil, sea salt, half tray", price: 780, image: "focaccia" },
+    { id: 6, name: "Celebration cake", note: "Three layers, serves 12. Order a day ahead", price: 4200, image: "cake" },
   ],
   orders: [],
 };
