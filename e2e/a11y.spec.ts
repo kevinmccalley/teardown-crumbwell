@@ -40,7 +40,7 @@ test.describe("WCAG 2.2 AA (axe-core)", () => {
 });
 
 test("the pickup picker works by keyboard", async ({ page }) => {
-  await withCart(page);
+  await withCart(page, { 2: 2, 3: 1 }); // no cake, so today can be chosen
   await page.goto("/checkout");
   await page.getByLabel("Email").fill("ana.pereira@example.com");
   await page.getByLabel("Email").focus();
@@ -61,4 +61,14 @@ test("the pickup picker works by keyboard", async ({ page }) => {
   await page.keyboard.press("ArrowRight");
   await expect(times.nth(1)).toBeChecked();
   await expect(page.getByText(/^Pickup: .+ Lisbon time$/)).toBeVisible();
+});
+
+test("a cart with the celebration cake can't be picked up today", async ({ page }) => {
+  await withCart(page);
+  await page.goto("/checkout");
+  const days = page.getByRole("group", { name: "Day" }).getByRole("radio");
+  await expect(days.first()).toBeDisabled();
+  await expect(days.nth(1)).toBeChecked();
+  await expect(page.getByText("Celebration cake needs to be ordered a day ahead, so pickup starts tomorrow.")).toBeVisible();
+  await expect(page.getByRole("group", { name: "Day" })).toHaveAccessibleDescription(/ordered a day ahead/);
 });

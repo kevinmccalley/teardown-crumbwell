@@ -128,6 +128,8 @@ h1:focus, [tabindex="-1"]:focus { outline: none; }
 .option input:checked + .face .day-date { color: var(--on-accent-muted); }
 .slot input:checked + .face { font-weight: 600; }
 .option input:disabled + .face { background: var(--disabled-bg); border-color: var(--disabled-line); color: var(--disabled-text); }
+.option input:disabled + .face .day-date { color: inherit; }
+.day-notice { margin: -3px 0 8px; }
 .option input:focus-visible + .face { outline: 2px solid var(--focus); outline-offset: 2px; }
 .option input:not(:checked):not(:disabled):hover + .face { border-color: var(--text); }
 .pickup-summary { color: var(--ok); font-weight: 500; font-size: 15px; margin-top: 20px; }

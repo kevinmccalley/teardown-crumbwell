@@ -4,7 +4,7 @@ import { bookableDates, formatPickup, formatShortDate, formatSlotTime, formatWee
 // @ts-ignore
 import { IMAGE_WIDTHS, srcSet } from "./images.js";
 
-type Product = { id: number; name: string; note: string; price: number; image: string };
+type Product = { id: number; name: string; note: string; price: number; image: string; leadDays?: number };
 type Cart = Record<number, number>;
 type Slot = { at: string; full: boolean };
 type Line = { id: number; name: string; qty: number; unitPrice: number; lineTotal: number };
@@ -234,18 +234,23 @@ function Checkout({ products, items, cart, total, onDone }: { products: Product[
   const [reload, setReload] = useState(0);
   const summaryRef = useRef<HTMLDivElement>(null);
 
+  // Products that must be ordered ahead (the celebration cake) rule out the first days.
+  const noticeItem = items.reduce<Product | undefined>((most, p) => ((p.leadDays || 0) > (most?.leadDays || 0) ? p : most), undefined);
+  const firstDay = noticeItem?.leadDays || 0;
+  const activeDay = Math.max(day, firstDay);
+
   useEffect(() => {
     let live = true;
     setSlots(null);
     setSlotsFailed(false);
-    fetch("/api/slots?date=" + dates[day])
+    fetch("/api/slots?date=" + dates[activeDay])
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((s) => live && setSlots(s))
       .catch(() => live && setSlotsFailed(true));
     return () => {
       live = false;
     };
-  }, [dates, day, reload]);
+  }, [dates, activeDay, reload]);
 
   if (!products) {
     return (
@@ -380,8 +385,14 @@ function Checkout({ products, items, cart, total, onDone }: { products: Product[
               <p className="badge">All times Lisbon time</p>
             </div>
 
-            <fieldset className="choices">
+            <fieldset className="choices" aria-describedby={noticeItem ? "day-notice" : undefined}>
               <legend>Day</legend>
+              {noticeItem && (
+                <p className="hint day-notice" id="day-notice">
+                  {noticeItem.name} needs to be ordered {firstDay === 1 ? "a day" : `${firstDay} days`} ahead, so pickup starts{" "}
+                  {firstDay === 1 ? "tomorrow" : formatWeekday(dates[firstDay])}.
+                </p>
+              )}
               <div className="days">
                 {dates.map((d, i) => (
                   <label className="option day" key={d}>
@@ -389,7 +400,8 @@ function Checkout({ products, items, cart, total, onDone }: { products: Product[
                       type="radio"
                       name="day"
                       value={d}
-                      checked={day === i}
+                      checked={activeDay === i}
+                      disabled={i < firstDay}
                       onChange={() => {
                         setDay(i);
                         setSlot("");
@@ -415,7 +427,7 @@ function Checkout({ products, items, cart, total, onDone }: { products: Product[
                   </button>
                 </p>
               )}
-              {slots && slots.length === 0 && <p>No pickup times are left {day === 0 ? "today" : "on this day"}. Please choose another day.</p>}
+              {slots && slots.length === 0 && <p>No pickup times are left {activeDay === 0 ? "today" : "on this day"}. Please choose another day.</p>}
               {slots && slots.length > 0 && (
                 <div className="slots">
                   {slots.map((s) => (

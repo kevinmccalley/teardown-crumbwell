@@ -1,6 +1,6 @@
 // API handlers, shared by the Vite dev server and the Vercel functions.
 import { db, newId } from "./db.js";
-import { bookableDates, isDate, lisbonDate, slotTimes } from "./lisbon.js";
+import { addDays, bookableDates, isDate, lisbonDate, slotTimes } from "./lisbon.js";
 import { OrderError, priceItems } from "./pricing.js";
 
 // Orders one pickup slot can take before it shows as full.
@@ -54,7 +54,21 @@ function buildOrder(body) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new OrderError("Enter an email address, like name@example.com.");
   const { lines, total } = priceItems(body.items, db.products);
   const pickupAt = checkPickup(body.pickupAt);
+  checkLeadTime(lines, pickupAt);
   return { name, phone, email, pickupAt, lines, total };
+}
+
+// Some products (the celebration cake) must be ordered days ahead, counted in Lisbon calendar days.
+function checkLeadTime(lines, pickupAt) {
+  const pickupDate = lisbonDate(new Date(pickupAt));
+  for (const line of lines) {
+    const leadDays = db.products.find((p) => p.id === line.id).leadDays || 0;
+    if (pickupDate < addDays(lisbonDate(), leadDays)) {
+      const ahead = leadDays === 1 ? "a day ahead" : `${leadDays} days ahead`;
+      const from = leadDays === 1 ? "tomorrow" : "a later day";
+      throw new OrderError(`${line.name} needs to be ordered ${ahead}. Choose a pickup time from ${from}.`);
+    }
+  }
 }
 
 const bookedAt = (at) => db.orders.filter((o) => o.pickupAt === at).length;
