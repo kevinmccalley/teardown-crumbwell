@@ -54,7 +54,7 @@ function Menu({ products, add }: any) {
   return (
     <>
       <div className="hero">
-        <img src="/img/hero.png" />
+        <img src="/img/hero.jpg" />
         <div className="hero-text">
           <div className="h1">Baked this morning.</div>
           <div className="sub">Order ahead and pick up warm from our Lisbon counter.</div>
@@ -77,6 +77,7 @@ function Menu({ products, add }: any) {
         ))}
       </div>
       <div className="footer">Crumbwell Bakery · Rua do Forno 12, Lisbon · Open every day 8:00–18:00</div>
+      <div className="credits">Photos from Unsplash: Yeh Xintong, David Todd McCarty, Conor Brown, Nick Fewings, Kamilla Isalieva, Iñigo De la Maza, Aneta Voborilova</div>
     </>
   );
 }
