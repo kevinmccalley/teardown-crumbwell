@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+const euro = (cents: number) => "€" + (cents / 100).toFixed(2);
+
 const go = (path: string) => {
   window.history.pushState({}, "", path);
   window.dispatchEvent(new PopStateEvent("popstate"));
@@ -41,7 +43,7 @@ export default function App() {
 
       {count > 0 && (
         <div className="cartbar">
-          <div>{count} items · €{total.toFixed(2)}</div>
+          <div>{count} items · {euro(total)}</div>
           <div className="cartbtn" onClick={() => go("/checkout")}>View cart</div>
         </div>
       )}
@@ -69,7 +71,7 @@ function Menu({ products, add }: any) {
               <div className="card-title">{p.name}</div>
               <div className="muted">{p.note}</div>
               <div className="row">
-                <div className="price">€{p.price.toFixed(2)}</div>
+                <div className="price">{euro(p.price)}</div>
                 <div className="add" onClick={() => add(p.id)}>+ Add</div>
               </div>
             </div>
@@ -113,7 +115,6 @@ function Checkout({ products, cart, total, onDone }: any) {
         ...form,
         items: items.map((p: any) => ({ id: p.id, qty: cart[p.id] })),
         pickupAt: slot,
-        total,
       }),
     });
     const order = await res.json();
@@ -134,12 +135,12 @@ function Checkout({ products, cart, total, onDone }: any) {
       {items.map((p: any) => (
         <div className="line" key={p.id}>
           <div>{cart[p.id]} × {p.name}</div>
-          <div>€{(p.price * cart[p.id]).toFixed(2)}</div>
+          <div>{euro(p.price * cart[p.id])}</div>
         </div>
       ))}
       <div className="line total">
         <div>Total</div>
-        <div>€{total.toFixed(2)}</div>
+        <div>{euro(total)}</div>
       </div>
 
       <div className="h3">Your details</div>
@@ -169,7 +170,7 @@ function Checkout({ products, cart, total, onDone }: any) {
         ))}
       </div>
 
-      <div className="pay" onClick={submit}>Place order · €{total.toFixed(2)}</div>
+      <div className="pay" onClick={submit}>Place order · {euro(total)}</div>
     </div>
   );
 }
@@ -190,14 +191,15 @@ function Order({ id, products }: any) {
       <div className="h3">Pickup</div>
       <div>{new Date(order.pickupAt).toLocaleString([], { weekday: "long", hour: "2-digit", minute: "2-digit" })}</div>
       <div className="h3">Items</div>
-      {order.items.map((i: any) => (
-        <div className="line" key={i.id}>
-          <div>{i.qty} × {products.find((p: any) => p.id === i.id)?.name}</div>
+      {order.lines.map((l: any) => (
+        <div className="line" key={l.id}>
+          <div>{l.qty} × {l.name}</div>
+          <div>{euro(l.lineTotal)}</div>
         </div>
       ))}
       <div className="line total">
-        <div>Paid</div>
-        <div>€{Number(order.paid).toFixed(2)}</div>
+        <div>To pay at pickup</div>
+        <div>{euro(order.total)}</div>
       </div>
     </div>
   );

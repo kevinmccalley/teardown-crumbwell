@@ -1,5 +1,6 @@
 // API handlers, shared by the Vite dev server and the Vercel functions.
 import { db, newId } from "./db.js";
+import { OrderError, priceItems } from "./pricing.js";
 
 const json = (res, status, body) => {
   res.statusCode = status;
@@ -7,13 +8,49 @@ const json = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
+const parse = (text) => {
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    throw new OrderError("The order couldn't be read. Please try again.");
+  }
+};
+
 const readBody = (req) =>
-  new Promise((resolve) => {
-    if (req.body) return resolve(typeof req.body === "string" ? JSON.parse(req.body) : req.body);
+  new Promise((resolve, reject) => {
+    if (req.body !== undefined) {
+      try {
+        return resolve(typeof req.body === "string" ? parse(req.body) : req.body);
+      } catch (e) {
+        return reject(e);
+      }
+    }
     let data = "";
     req.on("data", (c) => (data += c));
-    req.on("end", () => resolve(data ? JSON.parse(data) : {}));
+    req.on("end", () => {
+      try {
+        resolve(parse(data));
+      } catch (e) {
+        reject(e);
+      }
+    });
   });
+
+const text = (value, max) => (typeof value === "string" ? value.trim().slice(0, max) : "");
+
+// Checks the customer's details and prices the items. Throws OrderError with a message for the customer.
+function buildOrder(body) {
+  const name = text(body.name, 100);
+  const phone = text(body.phone, 30);
+  const email = text(body.email, 200);
+  if (!name) throw new OrderError("Enter your full name.");
+  if ((phone.match(/\d/g) || []).length < 7 || !/^\+?[\d\s().-]+$/.test(phone)) {
+    throw new OrderError("Enter a phone number so we can text you when your order is ready.");
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new OrderError("Enter an email address, like name@example.com.");
+  const { lines, total } = priceItems(body.items, db.products);
+  return { name, phone, email, pickupAt: body.pickupAt, lines, total };
+}
 
 export async function handle(req, res) {
   const url = new URL(req.url, "http://localhost");
@@ -32,18 +69,14 @@ export async function handle(req, res) {
   }
 
   if (path === "/orders" && req.method === "POST") {
-    const body = await readBody(req);
-    const order = {
-      id: newId(),
-      name: body.name,
-      phone: body.phone,
-      email: body.email,
-      items: body.items,
-      pickupAt: body.pickupAt,
-      paid: body.total,
-    };
-    db.orders.push(order);
-    return json(res, 200, order);
+    try {
+      const order = { id: newId(), ...buildOrder(await readBody(req)) };
+      db.orders.push(order);
+      return json(res, 201, order);
+    } catch (e) {
+      if (e instanceof OrderError) return json(res, 400, { error: e.message });
+      throw e;
+    }
   }
 
   const match = path.match(/^\/orders\/(\d+)$/);
