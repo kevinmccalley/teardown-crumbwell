@@ -1,0 +1,9 @@
+# Local-only files that must not be uploaded to Vercel.
+.claude
+.data
+.env*
+!.env.example
+dist
+test-results
+playwright-report
+/images
