@@ -1,11 +1,10 @@
 import { randomBytes } from "node:crypto";
+import { addDays, lisbonDate, lisbonTime } from "./lisbon.js";
 import { priceItems } from "./pricing.js";
 
 // Prices are in euro cents.
 // In-memory "database" standing in for the Supabase project a Lovable app would use.
-const today = new Date();
-const pickup = (offset, hour) =>
-  new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + offset, hour)).toISOString();
+const pickup = (offset, hour) => lisbonTime(addDays(lisbonDate(), offset), hour).toISOString();
 
 export const db = {
   products: [

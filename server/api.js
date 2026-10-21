@@ -1,6 +1,10 @@
 // API handlers, shared by the Vite dev server and the Vercel functions.
 import { db, newId } from "./db.js";
+import { bookableDates, isDate, lisbonDate, slotTimes } from "./lisbon.js";
 import { OrderError, priceItems } from "./pricing.js";
+
+// Orders one pickup slot can take before it shows as full.
+export const SLOT_CAPACITY = 6;
 
 const json = (res, status, body) => {
   res.statusCode = status;
@@ -49,7 +53,22 @@ function buildOrder(body) {
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new OrderError("Enter an email address, like name@example.com.");
   const { lines, total } = priceItems(body.items, db.products);
-  return { name, phone, email, pickupAt: body.pickupAt, lines, total };
+  const pickupAt = checkPickup(body.pickupAt);
+  return { name, phone, email, pickupAt, lines, total };
+}
+
+const bookedAt = (at) => db.orders.filter((o) => o.pickupAt === at).length;
+
+// The pickup time must be one of the slots still to come on a bookable day, with room left.
+function checkPickup(at) {
+  const instant = typeof at === "string" ? new Date(at) : null;
+  const iso = instant && !isNaN(instant) ? instant.toISOString() : "";
+  const date = iso && lisbonDate(instant);
+  if (!iso || !bookableDates().includes(date) || !slotTimes(date).includes(iso) || instant.getTime() <= Date.now()) {
+    throw new OrderError("Choose one of the pickup times shown.");
+  }
+  if (bookedAt(iso) >= SLOT_CAPACITY) throw new OrderError("That pickup time has just filled up. Please choose another.");
+  return iso;
 }
 
 export async function handle(req, res) {
@@ -60,11 +79,14 @@ export async function handle(req, res) {
     return json(res, 200, db.products);
   }
 
-  // Shop is open 8:00-18:00, hourly pickup slots
+  // Shop is open 8:00-18:00 Lisbon time, hourly pickup slots. Lists the slots still to come on a bookable date.
   if (path === "/slots" && req.method === "GET") {
-    const [y, m, d] = (url.searchParams.get("date") || "").split("-").map(Number);
-    const slots = [];
-    for (let h = 8; h < 18; h++) slots.push(new Date(Date.UTC(y, m - 1, d, h)).toISOString());
+    const date = url.searchParams.get("date");
+    if (!isDate(date) || !bookableDates().includes(date)) return json(res, 400, { error: "Choose today or one of the next two days." });
+    const now = Date.now();
+    const slots = slotTimes(date)
+      .filter((at) => Date.parse(at) > now)
+      .map((at) => ({ at, full: bookedAt(at) >= SLOT_CAPACITY }));
     return json(res, 200, slots);
   }
 

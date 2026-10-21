@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+// @ts-ignore
+import { bookableDates, formatPickup, formatSlotTime } from "../server/lisbon.js";
 
 const euro = (cents: number) => "€" + (cents / 100).toFixed(2);
 
@@ -87,13 +89,11 @@ function Menu({ products, add }: any) {
 function Checkout({ products, cart, total, onDone }: any) {
   const [form, setForm] = useState({ name: "", phone: "", email: "" });
   const [day, setDay] = useState(0);
-  const [slots, setSlots] = useState<string[]>([]);
+  const [slots, setSlots] = useState<{ at: string; full: boolean }[]>([]);
   const [slot, setSlot] = useState("");
   const [errors, setErrors] = useState<any>({});
 
-  const date = new Date();
-  date.setDate(date.getDate() + day);
-  const dateStr = date.toISOString().slice(0, 10);
+  const dateStr = bookableDates()[day];
 
   useEffect(() => {
     fetch("/api/slots?date=" + dateStr).then((r) => r.json()).then(setSlots);
@@ -164,8 +164,8 @@ function Checkout({ products, cart, total, onDone }: any) {
       </div>
       <div className={errors.slot ? "slots error" : "slots"}>
         {slots.map((s) => (
-          <div key={s} className={slot === s ? "slot active" : "slot"} onClick={() => setSlot(s)}>
-            {new Date(s).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          <div key={s.at} className={slot === s.at ? "slot active" : "slot"} onClick={() => !s.full && setSlot(s.at)}>
+            {formatSlotTime(s.at)}{s.full && " · Full"}
           </div>
         ))}
       </div>
@@ -189,7 +189,7 @@ function Order({ id, products }: any) {
       <div className="h2">Thanks, {order.name}!</div>
       <div className="muted">We'll text {order.phone} when it's ready.</div>
       <div className="h3">Pickup</div>
-      <div>{new Date(order.pickupAt).toLocaleString([], { weekday: "long", hour: "2-digit", minute: "2-digit" })}</div>
+      <div>{formatPickup(order.pickupAt)}</div>
       <div className="h3">Items</div>
       {order.lines.map((l: any) => (
         <div className="line" key={l.id}>
