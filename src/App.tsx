@@ -1,4 +1,5 @@
 import { FormEvent, MouseEvent, ReactNode, useEffect, useRef, useState } from "react";
+import { products as menu } from "../server/products.js";
 // @ts-ignore
 import { bookableDates, formatPickup, formatShortDate, formatSlotTime, formatWeekday } from "../server/lisbon.js";
 // @ts-ignore
@@ -52,7 +53,8 @@ const readCart = (): Cart => {
 
 export default function App() {
   const [path, setPath] = useState(window.location.pathname);
-  const [products, setProducts] = useState<Product[] | null>(null);
+  // The menu ships with the page, so nothing jumps while it loads.
+  const products: Product[] | null = menu;
   const [cart, setCart] = useState<Cart>(readCart);
   const [announcement, setAnnouncement] = useState("");
 
@@ -62,7 +64,6 @@ export default function App() {
       window.scrollTo(0, 0);
     };
     window.addEventListener("popstate", onPop);
-    fetch("/api/products").then((r) => r.json()).then(setProducts);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 

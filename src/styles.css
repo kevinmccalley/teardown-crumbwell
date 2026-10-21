@@ -16,8 +16,8 @@
   --error-bg: #fcedeb;
   --ok: #2f6b3a;
   --focus: #1f5fbf;
-  --serif: "Source Serif 4", Georgia, serif;
-  --sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Source Serif 4 Variable", Georgia, serif;
+  --sans: "Inter Tight Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 * { box-sizing: border-box; }
